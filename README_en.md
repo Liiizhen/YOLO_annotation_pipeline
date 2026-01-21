@@ -1,5 +1,7 @@
 # Data Annotation and Processing Pipeline
 
+[中文](README.md) | [English](README_en.md)
+
 This project is designed for the streamlined manual annotation of source datasets, execution of data augmentation, and splitting them into YOLO-formatted training, validation, and testing sets.
 
 ## 1. Project Structure
