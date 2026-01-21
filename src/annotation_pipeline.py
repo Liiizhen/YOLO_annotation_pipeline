@@ -7,13 +7,13 @@ import random
 import albumentations as A
 import argparse
 
-# --- 默认配置 ---
+# --- Default Configuration ---
 DATA_ROOT = '../data'
 DATA_YAML_PATH = os.path.join(DATA_ROOT, 'data.yaml')
-TEMP_IMG_DIR = os.path.join(DATA_ROOT, 'images_all_temp') # 临时存放所有汇总图片
-TEMP_LBL_DIR = os.path.join(DATA_ROOT, 'labels_all_temp') # 临时存放所有汇总标签
+TEMP_IMG_DIR = os.path.join(DATA_ROOT, 'images_all_temp') # Temp dir for all aggregated images
+TEMP_LBL_DIR = os.path.join(DATA_ROOT, 'labels_all_temp') # Temp dir for all aggregated labels
 
-# --- 标注工具相关 (嵌入 annotation.py 的逻辑) ---
+# --- Labeling Tool Related (Embedded annotation.py logic) ---
 points = []
 current_boxes = []
 img_display = None
@@ -62,9 +62,9 @@ def run_labeling(raw_folder, class_id, class_name, start_index=0):
     files = [f for f in os.listdir(raw_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]
     files.sort()
     
-    print(f"\n--- 开始标注类别: {class_name} (ID: {class_id}) ---")
-    print(f"源文件夹: {raw_folder}")
-    print(f"找到 {len(files)} 张待处理图片")
+    print(f"\n--- Start Labeling Class: {class_name} (ID: {class_id}) ---")
+    print(f"Source Folder: {raw_folder}")
+    print(f"Found {len(files)} images to process")
     
     local_index = start_index
 
@@ -72,12 +72,12 @@ def run_labeling(raw_folder, class_id, class_name, start_index=0):
     cv2.setMouseCallback('Labeling Tool', mouse_callback)
 
     for filename in files:
-        # 定义目标文件名
+        # Define target filename
         new_name = f"{class_name}_{local_index:05d}"
         dst_img_path = os.path.join(TEMP_IMG_DIR, new_name + ".png")
         dst_lbl_path = os.path.join(TEMP_LBL_DIR, new_name + ".txt")
 
-        # 如果目标文件已存在，跳过（断点续标）
+        # If target file exists, skip (resume labeling)
         if os.path.exists(dst_img_path) and os.path.exists(dst_lbl_path):
             print(f"Skipping {filename}, already labeled as {new_name}")
             local_index += 1
@@ -99,11 +99,12 @@ def run_labeling(raw_folder, class_id, class_name, start_index=0):
             
             if key == 13: # Enter
                 if not current_boxes:
-                    print("警告: 当前图片未标注框，跳过保存? (按 Enter 继续下一张，此次不保存)")
+                    print("Warning: No boxes labeled for current image. Skip saving? (Press Enter to continue to next, unsaved)")
                     break
                 
                 # Copy Image
-                cv2.imwrite(dst_img_path, img_raw) # 统一转PNG
+                cv2.imwrite(dst_img_path, img_raw) # Convert to PNG
+
                 
                 # Save Label
                 with open(dst_lbl_path, 'w') as f:
@@ -130,7 +131,7 @@ def run_labeling(raw_folder, class_id, class_name, start_index=0):
     cv2.destroyAllWindows()
     return True
 
-# --- 数据增强 ---
+# --- Data Augmentation ---
 def run_augmentation_in_folder(img_dir, lbl_dir, aug_ratio):
     if aug_ratio <= 0: return
 
@@ -155,8 +156,8 @@ def run_augmentation_in_folder(img_dir, lbl_dir, aug_ratio):
     img_list = glob.glob(os.path.join(img_dir, "*.png"))
     
     for img_path in img_list:
-        # 只对“原始”图片做增强（防止对已经增强过的图片再增强，通过文件名长度或特征判断）
-        # 这里简单判断：如果文件名包含 "_aug_" 则跳过
+        # Only augment "original" images (prevent re-augmenting, check via filename)
+        # Simple check: skip if filename contains "_aug_"
         if "_aug_" in img_path: continue
 
         filename = os.path.basename(img_path)
@@ -182,7 +183,7 @@ def run_augmentation_in_folder(img_dir, lbl_dir, aug_ratio):
                 aug_bboxes = augmented['bboxes']
                 aug_lbls = augmented['class_labels']
                 
-                if len(aug_bboxes) == 0: continue # 框消失了就不保存
+                if len(aug_bboxes) == 0: continue # Don't save if boxes disappeared
 
                 new_name = f"{name}_aug_{i}"
                 cv2.imwrite(os.path.join(img_dir, new_name + ".png"), aug_img)
@@ -197,12 +198,12 @@ def run_augmentation_in_folder(img_dir, lbl_dir, aug_ratio):
                 pass # Ignore errors
 
 
-# --- 数据集分割 ---
+# --- Dataset Splitting ---
 def run_split(train_r, val_r, test_r):
-    print(f"\n--- 开始分割数据集 ({train_r}:{val_r}:{test_r}) ---")
+    print(f"\n--- Start Splitting Dataset ({train_r}:{val_r}:{test_r}) ---")
     
     subsets = ['train', 'valid', 'test']
-    # 清空旧的分割文件夹但保留结构
+    # Clear old split folders but keep structure
     for s in subsets:
         shutil.rmtree(os.path.join(DATA_ROOT, s), ignore_errors=True)
         os.makedirs(os.path.join(DATA_ROOT, s, 'images'), exist_ok=True)
@@ -227,9 +228,9 @@ def run_split(train_r, val_r, test_r):
         
         for f_name in files:
             name = os.path.splitext(f_name)[0]
-            # 移动图片
+            # Move Image
             shutil.copy(os.path.join(TEMP_IMG_DIR, f_name), os.path.join(dst_img_dir, f_name))
-            # 移动标签
+            # Move Label
             lbl_src = os.path.join(TEMP_LBL_DIR, name + ".txt")
             if os.path.exists(lbl_src):
                 shutil.copy(lbl_src, os.path.join(dst_lbl_dir, name + ".txt"))
@@ -245,7 +246,7 @@ def main():
     parser.add_argument('--skip_labeling', action='store_true', help='Skip manual labeling step')
     args = parser.parse_args()
 
-    # 1. 解析 YAML
+    # 1. Parse YAML
     if not os.path.exists(DATA_YAML_PATH):
         print(f"Error: {DATA_YAML_PATH} not found!")
         return
@@ -255,34 +256,34 @@ def main():
         class_names = data_cfg.get('names', [])
         print(f"Detected Classes from YAML: {class_names}")
 
-    # 2. 准备临时汇总目录
+    # 2. Prepare Temp Aggregation Dirs
     os.makedirs(TEMP_IMG_DIR, exist_ok=True)
     os.makedirs(TEMP_LBL_DIR, exist_ok=True)
 
-    # 3. 遍历类别进行标注
+    # 3. Iterate Classes for Labeling
     if not args.skip_labeling:
         for idx, cls_name in enumerate(class_names):
             raw_dir = os.path.join(DATA_ROOT, cls_name)
             if not os.path.exists(raw_dir):
-                print(f"警告: 找不到 '{cls_name}' 的源文件夹 {raw_dir}，跳过此类别")
+                print(f"Warning: Source folder {raw_dir} for '{cls_name}' not found, skipping.")
                 continue
             
-            # 查找当前该类别最大的索引，以便接续编号 (e.g., bottles_00123)
-            # 简单策略：总是重新扫描
+            # Find max index for this class to resume numbering (e.g., bottles_00123)
+            # Simple strategy: always rescan
             success = run_labeling(raw_dir, idx, cls_name, start_index=0)
             if not success:
-                print("程序被用户中断。")
+                print("Program interrupted by user.")
                 return
     else:
         print("Skipping labeling step...")
 
-    # 4. 分割数据集 (先分割原始数据)
+    # 4. Split Dataset (Split original data first)
     run_split(args.train_ratio, args.val_ratio, args.test_ratio)
 
-    # 5. 数据增强 (后增强，针对每个子集文件夹分别进行)
+    # 5. Data Augmentation (Augment separately for each subset after splitting)
     if args.aug_ratio > 0:
-        print(f"\n--- 开始数据增强 (Ratio: {args.aug_ratio}) ---")
-        # 遍历 train, valid, test 文件夹分别做增强
+        print(f"\n--- Start Data Augmentation (Ratio: {args.aug_ratio}) ---")
+        # Iterate train, valid, test folders
         for subset in ['train', 'valid', 'test']:
             subset_img_dir = os.path.join(DATA_ROOT, subset, 'images')
             subset_lbl_dir = os.path.join(DATA_ROOT, subset, 'labels')
@@ -296,7 +297,7 @@ def main():
     print("\n=== Pipeline Completed Successfully! ===")
     print(f"Data is ready in: {DATA_ROOT}/[train|valid|test]")
 
-    # 可选：清理临时文件夹
+    # Optional: cleanup temp dirs
     shutil.rmtree(TEMP_IMG_DIR)
     shutil.rmtree(TEMP_LBL_DIR)
 
