@@ -1,30 +1,30 @@
-# 数据标注与处理流水线
+# Data Annotation and Processing Pipeline
 
 [中文](README.md) | [English](README_en.md)
 
-本项目用于流程化手动标注源数据集，执行数据增强，并将其分割为 YOLO 格式的训练集、验证集和测试集。
+This project is designed for the streamlined manual annotation of source datasets, execution of data augmentation, and splitting them into YOLO-formatted training, validation, and testing sets.
 
-## 1. 项目构成
+## 1. Project Structure
 
 ```text
--data/                  # 数据根目录
-  ├── Apples/           # 原始图片文件夹 (类别1)
-  ├── Bananas/          # 原始图片文件夹 (类别2)
-  ├── Oranges/          # 原始图片文件夹 (类别3)
-  ├── data.yaml         # 数据集配置文件
-  └── train/            # [自动生成] 训练集 (images/labels)
-  └── valid/            # [自动生成] 验证集 (images/labels)
-  └── test/             # [自动生成] 测试集 (images/labels)
+-data/                  # Data root directory
+  ├── Apples/           # Raw image folder (Class 1)
+  ├── Bananas/          # Raw image folder (Class 2)
+  ├── Oranges/          # Raw image folder (Class 3)
+  ├── data.yaml         # Dataset configuration file
+  └── train/            # [Auto-generated] Training set (images/labels)
+  └── valid/            # [Auto-generated] Validation set (images/labels)
+  └── test/             # [Auto-generated] Test set (images/labels)
 
 -src/
-  ├── annotation_pipeline.py  # 核心流水线脚本 (标注 -> 分割 -> 增强)
-  ├── train.py                # 训练脚本
-  ├── validate.py             # 验证脚本
-  └── diagram.ipynb           # 结果绘制
+  ├── annotation_pipeline.py  # Core pipeline script (Labeling -> Splitting -> Augmentation)
+  ├── train.py                # Training script
+  ├── validate.py             # Validation script
+  └── diagram.ipynb           # Result visualization
 ```
 
-### data.yaml 配置格式
-请确保 `data.yaml` 包含 `names` 字段，且名称与原始图片子文件夹名称严格一致：
+### data.yaml Configuration Format
+Please ensure `data.yaml` contains the `names` field, and the names strictly match the subfolder names of the raw images:
 ```yaml
 names:
   - Apples
@@ -33,75 +33,74 @@ names:
 nc: 3 
 ```
 
-## 2. 使用方法
+## 2. Usage
 
-进入 src 文件夹终端：
+Enter the src folder directory in terminal:
 ```bash
 cd ./src
 ```
 
-### 2.1 运行流水线
+### 2.1 Running the Pipeline
 
-脚本支持多种参数配置，以下是常用命令：
+The script supports various parameter configurations. Here are some common commands:
 
-**1. 默认运行（标注 + 分割）**
-按照默认比例 (train:0.7, val:0.2, test:0.1) 进行手动标注和分割，不进行数据增强。
+**1. Default Run (Labeling + Splitting)**
+Perform manual labeling and splitting according to the default ratio (train:0.7, val:0.2, test:0.1) without data augmentation.
 ```bash
 python annotation_pipeline.py
 ```
 
-**2. 启用数据增强**
-使用 `--aug_ratio` 参数。例如：每张原图生成 2 张增强图（旋转、噪声、模糊等）。
-*注：增强操作发生的数据集分割之后，防止数据泄漏。*
+**2. Enable Data Augmentation**
+Use the `--aug_ratio` parameter. For example: generate 2 augmented images per original image (rotation, noise, blur, etc.).
+*Note: Augmentation occurs after dataset splitting to prevent data leakage.*
 ```bash
 python annotation_pipeline.py --aug_ratio 2
 ```
 
-**3. 跳过标注步骤**
-如果你已经完成了标注（临时文件夹中有数据），或者只想重新分割/增强数据，可以使用 `--skip_labeling`。
+**3. Skip Labeling Step**
+If you have already completed labeling (data exists in temporary folders), or just want to re-split/augment data, you can use `--skip_labeling`.
 ```bash
 python annotation_pipeline.py --skip_labeling --aug_ratio 1
 ```
 
-**4. 自定义分割比例**
+**4. Custom Split Ratios**
 ```bash
 python annotation_pipeline.py --train_ratio 0.8 --val_ratio 0.1 --test_ratio 0.1
 ```
 
-### 2.2 参数详解
+### 2.2 Parameter Details
 
-| 参数 | 类型 | 默认值 | 说明 |
+| Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--aug_ratio` | int | 0 | 每张原图生成的增强图片数量。0 表示不增强。 |
-| `--train_ratio` | float | 0.7 | 训练集比例 |
-| `--val_ratio` | float | 0.2 | 验证集比例 |
-| `--test_ratio` | float | 0.1 | 测试集比例 |
-| `--skip_labeling` | flag | False | adding此参数将跳过手动标注阶段，直接处理现有临时数据。 |
+| `--aug_ratio` | int | 0 | Number of augmented images generated per original image. 0 means no augmentation. |
+| `--train_ratio` | float | 0.7 | Training set ratio |
+| `--val_ratio` | float | 0.2 | Validation set ratio |
+| `--test_ratio` | float | 0.1 | Test set ratio |
+| `--skip_labeling` | flag | False | Adding this parameter will skip the manual labeling phase and directly process existing temporary data. |
 
-## 3. 标注工具操作指南
+## 3. Labeling Tool Operation Guide
 
-当程序进入标注阶段，将会弹出 OpenCV 窗口。操作方法如下：
+When the program enters the labeling phase, an OpenCV window will pop up. The operation instructions are as follows:
 
-*   **鼠标左键 (点击两次)**：
-    *   第一次点击：确定框的左上角（或一个角）。
-    *   第二次点击：确定框的右下角（或对角），此时会自动绘制红色矩形框并暂存。
-*   **Enter (回车键)**：
-    *   确认当前图片的所有标注框，保存图片和标签，并自动切换到**下一张**图片。
-    *   如果当前图片没有框，按回车将跳过保存，直接处理下一张。
-*   **c 键 (Clear)**：
-    *   清除当前图片上已画好的所有暂存框（重置当前图片）。
-*   **s 键 (Skip)**：
-    *   跳过当前图片（不保存任何内容），直接处理下一张。
-*   **q 键 (Quit)**：
-    *   直接退出整个程序。
+*   **Left Mouse Click (Twice)**:
+    *   First click: Determine the top-left corner (or one corner) of the bounding box.
+    *   Second click: Determine the bottom-right corner (or diagonal corner). A red rectangle will automatically be drawn and cached.
+*   **Enter Key**:
+    *   Confirm all bounding boxes for the current image, save the image and label, and automatically switch to the **next** image.
+    *   If the current image has no boxes, pressing Enter will skip saving and proceed to the next image.
+*   **c Key (Clear)**:
+    *   Clear all cached bounding boxes drawn on the current image (reset current image).
+*   **s Key (Skip)**:
+    *   Skip the current image (save nothing) and proceed to the next image.
+*   **q Key (Quit)**:
+    *   Directly exit the entire program.
 
-## 4. 输出结果
+## 4. Output Results
 
-脚本运行结束后，数据将生成在 `../data` 目录下：
+After the script finishes running, data will be generated in the `../data` directory:
 
 *   `../data/train`
 *   `../data/valid`
 *   `../data/test`
 
-每一个目录下均包含 `images` (图片) 和 `labels` (txt格式标签) 两个子文件夹，可直接用于 YOLO 模型训练。
-
+Each directory contains two subfolders: `images` and `labels` (txt format), which can be directly used for YOLO model training.
