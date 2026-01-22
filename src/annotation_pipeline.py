@@ -68,8 +68,10 @@ def run_labeling(raw_folder, class_id, class_name, start_index=0):
     
     local_index = start_index
 
-    cv2.namedWindow('Labeling Tool')
+    cv2.namedWindow('Labeling Tool', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('Labeling Tool', 960, 720)
     cv2.setMouseCallback('Labeling Tool', mouse_callback)
+
 
     for filename in files:
         # Define target filename
